@@ -8,6 +8,8 @@ export async function dailyReport() {
   const balance = getBalance();
   const yesterdayEntries = getReport(yesterday, today);
 
+  if (yesterdayEntries.length === 0 && balance.totalRevenue === 0) return;
+
   await runAgent({
     type: "scheduled",
     source: "cron/daily-report",

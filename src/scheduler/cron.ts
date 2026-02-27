@@ -4,12 +4,11 @@ import { checkShipments } from "./jobs/check-shipments.js";
 import { syncInventory } from "./jobs/sync-inventory.js";
 import { dailyReport } from "./jobs/daily-report.js";
 import { staleOrders } from "./jobs/stale-orders.js";
-import { syncPricing } from "./jobs/sync-pricing.js";
 import { sourceProducts } from "./jobs/source-products.js";
 
 export function startScheduler() {
-  // Check shipment tracking every 2 hours
-  cron.schedule("0 */2 * * *", async () => {
+  // Check shipment tracking every 8 hours (AliExpress ships in 7-15 days)
+  cron.schedule("0 */8 * * *", async () => {
     logger.info("Cron: checking shipments");
     try {
       await checkShipments();
@@ -18,23 +17,13 @@ export function startScheduler() {
     }
   });
 
-  // Sync inventory with suppliers every 6 hours
-  cron.schedule("0 */6 * * *", async () => {
-    logger.info("Cron: syncing inventory");
+  // Combined inventory + pricing sync every 8 hours
+  cron.schedule("0 4,12,20 * * *", async () => {
+    logger.info("Cron: syncing inventory & pricing");
     try {
       await syncInventory();
     } catch (err) {
       logger.error({ err }, "Cron: sync-inventory failed");
-    }
-  });
-
-  // Sync pricing with AliExpress every 12 hours
-  cron.schedule("0 */12 * * *", async () => {
-    logger.info("Cron: syncing pricing");
-    try {
-      await syncPricing();
-    } catch (err) {
-      logger.error({ err }, "Cron: sync-pricing failed");
     }
   });
 
@@ -48,7 +37,7 @@ export function startScheduler() {
     }
   });
 
-  // Daily P&L report at 9am
+  // Daily P&L report at 9am (skips if no activity)
   cron.schedule("0 9 * * *", async () => {
     logger.info("Cron: daily report");
     try {
